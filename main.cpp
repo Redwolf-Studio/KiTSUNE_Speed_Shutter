@@ -7,15 +7,20 @@ By REDWOLF
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
-unsigned long StartTime, StopTime;
+unsigned long StartTime, StopTime, DeltaTime;
+float ShutterTime1,ShutterTime2;
 volatile boolean shutterFlag = false, signalReading = false;
 
 void setup() {
   Serial.begin(9600);
 
   //Pin setup
+  //interrupts INT0
   DDRD &= ~(1 << DDD2);     //Set PD2 pin  to INPUT
   PORTD |= (1 << PORTD2);   //Enable pull-up
+  //Pin 3 (Reset)
+  DDRD &= ~(1 << DDD3);     //Set PD3 pin  to INPUT
+  PORTD |= (1 << PORTD3);   //Enable pull-up
 
   //Interrupts setup 
   EICRA |= (1 << ISC00);    //Set INT0 to trigger on any logic change
@@ -26,11 +31,22 @@ void setup() {
 
 void loop() {
 
+  if(digitalRead(3) == LOW) {
+    //RESET logic and value
+    shutterFlag = false;
+    signalReading = false;
+    DeltaTime = 0;
+    StartTime = 0;
+    StopTime = 0;
+    ShutterTime1 = 0;
+    ShutterTime2 = 0;
+  }
+
   if(signalReading == true) {
 
-    long DeltaTime = (StopTime - StartTime);
-    float ShutterTime1 = (float)DeltaTime/1000000;
-    float ShutterTime2 = 1/ShutterTime1;
+    DeltaTime = (StopTime - StartTime);
+    ShutterTime1 = (float)DeltaTime/1000000;
+    ShutterTime2 = 1/ShutterTime1;
 
     //Serial Debug
     Serial.println("---------------------------");
